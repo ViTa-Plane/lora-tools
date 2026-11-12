@@ -1,3 +1,5 @@
+# version = 1.0.1
+
 import sys
 import os
 import json
@@ -853,7 +855,7 @@ class MetadataInspector(QWidget):
 class LoraToolsWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Lora Tools — Modern Safetensors Manager")
+        self.setWindowTitle("Lora Tools — Safetensors Metadata Viewer")
         self.resize(1560, 920)
         self.scanner_thread: QThread | None = None
         self.scanner_worker: FolderScannerWorker | None = None
