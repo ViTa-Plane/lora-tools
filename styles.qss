@@ -1,0 +1,233 @@
+QMainWindow, QWidget {
+    background-color: #0b0f19;
+    color: #f1f5f9;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 13px;
+}
+
+#TopToolbar {
+    background-color: #0f172a;
+    border-bottom: 1px solid #1e293b;
+}
+
+#BrandTitle {
+    font-size: 16px;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 0.5px;
+}
+
+QLineEdit {
+    background-color: #131b2e;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: #f8fafc;
+}
+
+QLineEdit:focus {
+    border: 1px solid #6366f1;
+    background-color: #172138;
+}
+
+#PrimaryButton {
+    background-color: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+#PrimaryButton:hover {
+    background-color: #4f46e5;
+}
+
+#PrimaryButton:pressed {
+    background-color: #4338ca;
+}
+
+#PrimaryButton:disabled {
+    background-color: #131b2e;
+    color: #475569;
+}
+
+#DangerButton {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+#DangerButton:hover {
+    background-color: #dc2626;
+}
+
+#DangerButton:disabled {
+    background-color: #131b2e;
+    color: #475569;
+}
+
+#DirtyLabel {
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#GridScrollArea {
+    border: none;
+    background-color: #0b0f19;
+}
+
+#CardImage {
+    background-color: #131b2e;
+    border-radius: 8px;
+}
+
+#CardTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+#InspectorTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+#SectionHeader {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+#SubtleText {
+    color: #64748b;
+    font-size: 12px;
+}
+
+#HighlightsBox {
+    background-color: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 8px;
+    color: #cbd5e1;
+}
+
+QTabWidget::pane {
+    border: 1px solid #1e293b;
+    background-color: #0f172a;
+    border-radius: 8px;
+}
+
+QTabBar::tab {
+    background-color: #131b2e;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border: 1px solid #1e293b;
+    border-bottom: none;
+    margin-right: 3px;
+    font-weight: 600;
+}
+
+QTabBar::tab:selected {
+    background-color: #0f172a;
+    color: #38bdf8;
+    border-bottom: 2px solid #38bdf8;
+}
+
+QTabBar::tab:hover:not(:selected) {
+    background-color: #172138;
+    color: #f1f5f9;
+}
+
+QListWidget {
+    background-color: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    color: #f1f5f9;
+    padding: 6px;
+}
+
+QTreeWidget {
+    background-color: #0f172a;
+    alternate-background-color: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    color: #f1f5f9;
+}
+
+QTreeWidget::item:selected {
+    background-color: #1a233a;
+    color: #38bdf8;
+}
+
+QSplitter::handle {
+    background-color: #1e293b;
+    width: 2px;
+}
+
+/* =========================================================
+   Bulletproof Modern Scrollbars
+   ========================================================= */
+QScrollBar:vertical {
+    border: none;
+    background-color: #0b0f19;
+    width: 12px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #334155;
+    min-height: 25px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #475569;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: none;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* Horizontal scrollbars */
+QScrollBar:horizontal {
+    border: none;
+    background-color: #0b0f19;
+    height: 12px;
+    margin: 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #334155;
+    min-width: 25px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #475569;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+    background: none;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
