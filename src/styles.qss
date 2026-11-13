@@ -175,7 +175,7 @@ QSplitter::handle {
 }
 
 /* =========================================================
-   Bulletproof Modern Scrollbars
+   Modern Scrollbars
    ========================================================= */
 QScrollBar:vertical {
     border: none;
@@ -230,4 +230,38 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
 
 QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
     background: none;
+}
+
+
+/* --- Left Metadata Tools Frame & Toolbar --- */
+#MetadataToolsFrame {
+    background-color: #0b0f19;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    min-width: 95px;
+    max-width: 105px;
+}
+
+#ToolsSectionTitle {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: bold;
+/*    text-transform: uppercase;*/
+    margin-bottom: 4px;
+}
+
+#MetadataToolsFrame #ToolButton {
+    background-color: #131b2e;
+    color: #f8fafc;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 8px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+#MetadataToolsFrame #ToolButton:hover {
+    background-color: #1a233a;
+    border: 1px solid #334155;
 }
