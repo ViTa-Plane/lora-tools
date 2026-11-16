@@ -1,4 +1,4 @@
-# version = 1.0.33
+# version = 1.0.34
 
 import sys
 import json
@@ -102,6 +102,9 @@ class LoraToolsWindow(QMainWindow):
         self.left_toolbar.edit_clicked.connect(self._open_metadata_editor_dialog)
         self.left_toolbar.purge_clicked.connect(
             lambda: tools.purge_metadata_action(self, self.inspector)
+        )
+        self.left_toolbar.add_clicked.connect(
+            lambda: tools.add_metadata_action(self, self.inspector)
         )
 
         grid_content_layout.addWidget(self.left_toolbar)

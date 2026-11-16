@@ -1,8 +1,10 @@
-# version = 1.0.27
+# version = 1.0.30
 
 import json
 from pathlib import Path
-from PySide6.QtWidgets import QFileDialog, QMessageBox
+from PySide6.QtWidgets import QFileDialog, QMessageBox,QDialog
+
+from src.ui import MetadataEditDialog, MetadataAddDialog
 
 try:
     import torch
@@ -63,7 +65,6 @@ def purge_metadata_action(parent_window, inspector):
         except Exception as e:
             QMessageBox.critical(parent_window, "Error", f"Failed during purge operation:\n{str(e)}")
 
-
 def replace_metadata_action(parent_window, inspector, edited_metadata: dict):
     """Executes replacement using the provided edited metadata dictionary as the source."""
     data = inspector.current_data
@@ -91,3 +92,15 @@ def replace_metadata_action(parent_window, inspector, edited_metadata: dict):
             )
         except Exception as e:
             QMessageBox.critical(parent_window, "Error", f"Failed during metadata replacement:\n{str(e)}")
+
+def add_metadata_action(parent_window, inspector):
+    data = inspector.current_data
+    if not data:
+        QMessageBox.warning(parent_window, "Warning", "No LoRa selected to add metadata to.")
+        return
+
+    current_meta = data.get("metadata", {})
+    dialog = MetadataAddDialog(current_meta)
+    if dialog.exec() == QDialog.Accepted and dialog.updated_metadata is not None:
+        # Pass edited metadata dictionary directly into the replace function workflow
+        replace_metadata_action(inspector, dialog.updated_metadata)

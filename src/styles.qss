@@ -204,7 +204,6 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     background: none;
 }
 
-/* Horizontal scrollbars */
 QScrollBar:horizontal {
     border: none;
     background-color: #0b0f19;
@@ -232,7 +231,6 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
     background: none;
 }
 
-
 /* --- Left Metadata Tools Frame & Toolbar --- */
 #MetadataToolsFrame {
     background-color: #0b0f19;
@@ -246,7 +244,6 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
     color: #94a3b8;
     font-size: 11px;
     font-weight: bold;
-/*    text-transform: uppercase;*/
     margin-bottom: 4px;
 }
 
@@ -264,4 +261,86 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
 #MetadataToolsFrame #ToolButton:hover {
     background-color: #1a233a;
     border: 1px solid #334155;
+}
+
+
+/* =========================================================
+   MetadataAddDialog Styles (Isolated Modal Theme)
+   ========================================================= */
+
+QDialog {
+    background: transparent;
+}
+
+/* Outer Window Container */
+#BackgroundContainer {
+    background-color: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 12px;
+}
+
+/* Inner Card Container (Explicitly boosted specificity to beat global QWidget styles) */
+QDialog QWidget#ContentCard, QFrame#ContentCard {
+    background-color: #0D1321;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+}
+
+/* Specific Dialog Title Styling */
+#DialogTitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+/* Fancy 'X' Close Button Styling */
+#CloseButton {
+    background-color: transparent;
+    color: #aaaaaa;
+    border: none;
+    font-size: 22px;
+    font-weight: 300;
+    border-radius: 6px;
+}
+
+#CloseButton:hover {
+    background-color: #c42b1c;
+    color: #ffffff;
+}
+
+#CloseButton:pressed {
+    background-color: #a82316;
+}
+
+/* =========================================================
+   Modern Slider Styles
+   ========================================================= */
+QSlider::groove:horizontal {
+    border: 1px solid #283548;
+    height: 6px;
+    background: #0b0f19;
+    border-radius: 3px;
+}
+
+QSlider::sub-page:horizontal {
+    background: #6366f1; /* Accent color matching your PrimaryButton */
+    border-radius: 3px;
+}
+
+QSlider::handle:horizontal {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    width: 16px;
+    height: 16px;
+    margin: -6px 0; /* Centers handle vertically over the groove */
+    border-radius: 8px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #38bdf8; /* Bright accent highlight on hover */
+    border-color: #38bdf8;
+}
+
+QSlider::handle:horizontal:pressed {
+    background: #4f46e5;
 }

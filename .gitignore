@@ -192,3 +192,4 @@ run python embeded.bat
 src/settings.json
 *.zip
 *.log
+/resize_lora

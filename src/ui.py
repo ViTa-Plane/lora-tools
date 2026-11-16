@@ -1,19 +1,20 @@
-# version = 1.0.26
+# version = 1.0.97
 
 import json
 from copy import deepcopy
 from pathlib import Path
+
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QLabel, QFileDialog, QScrollArea,
     QFrame, QSplitter, QTextEdit, QTreeWidget, QTreeWidgetItem,
     QGridLayout, QListWidget, QListWidgetItem, QMessageBox, QHeaderView,
-    QTabWidget, QMenu, QAbstractItemView, QSizePolicy, QToolButton, QStyle, QDialog
+    QTabWidget, QMenu, QAbstractItemView, QSizePolicy, QToolButton, QStyle, QDialog, QGraphicsDropShadowEffect, QSlider
 )
-from PySide6.QtCore import Qt, Signal, QSize, QThread, QObject, QFileSystemWatcher, QTimer, QUrl
+from PySide6.QtCore import Qt, Signal, QSize, QThread, QObject, QFileSystemWatcher, QTimer, QUrl, QPoint
 from PySide6.QtGui import QPixmap, QPainter, QColor, QFont, QKeySequence, QShortcut, QClipboard, QIcon, QPen, \
-    QDesktopServices, QMouseEvent
+    QDesktopServices, QMouseEvent , QRegion, QPainterPath
 
 from .helpers import open_containing_folder
 
@@ -798,31 +799,544 @@ class MetadataInspector(QWidget):
             item = QTreeWidgetItem([str(key), display_val])
             self.meta_tree.addTopLevelItem(item)
 
+class LeftToolsToolbar(QFrame):
+    """Toolbar featuring distinct vertical tool blocks: Metadata, Resize, and Merge."""
+
+    # Metadata Signals
+    export_clicked = Signal()
+    replace_clicked = Signal()
+    edit_clicked = Signal()
+    purge_clicked = Signal()
+    add_clicked = Signal()
+    hash_clicked = Signal()
+
+    # Resize & Merge Signals
+    resize_clicked = Signal()
+    merge_clicked = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("MetadataToolsFrame")
+        self._setup_ui()
+        self._apply_inline_styles()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 14, 10, 14)
+        layout.setSpacing(12)
+
+        # ==========================================
+        # BLOCK 1: METADATA TOOLS
+        # ==========================================
+        meta_title = QLabel("Metadata")
+        meta_title.setObjectName("ToolsSectionTitle")
+        layout.addWidget(meta_title)
+
+        self.export_btn = QPushButton("Export")
+        self.export_btn.setObjectName("ToolButton")
+        self.export_btn.setToolTip("Export Metadata JSON")
+        self.export_btn.clicked.connect(self.export_clicked.emit)
+        layout.addWidget(self.export_btn)
+
+        self.replace_btn = QPushButton("Replace")
+        self.replace_btn.setObjectName("ToolButton")
+        self.replace_btn.setToolTip("Replace Metadata from JSON")
+        self.replace_btn.clicked.connect(self.replace_clicked.emit)
+        layout.addWidget(self.replace_btn)
+
+        self.edit_btn = QPushButton("Edit")
+        self.edit_btn.setObjectName("ToolButton")
+        self.edit_btn.setToolTip("Edit Metadata Interactively")
+        self.edit_btn.clicked.connect(self.edit_clicked.emit)
+        layout.addWidget(self.edit_btn)
+
+        self.add_btn = QPushButton("Add")
+        self.add_btn.setObjectName("ToolButton")
+        self.add_btn.setToolTip("Add Custom Metadata Header")
+        self.add_btn.clicked.connect(self.add_clicked.emit)
+        layout.addWidget(self.add_btn)
+
+        self.purge_btn = QPushButton("Purge")
+        self.purge_btn.setObjectName("ToolButton")
+        self.purge_btn.setToolTip("Purge All Metadata Headers")
+        self.purge_btn.clicked.connect(self.purge_clicked.emit)
+        layout.addWidget(self.purge_btn)
+
+        self.hash_btn = QPushButton("re-Hash")
+        self.hash_btn.setObjectName("ToolButton")
+        self.hash_btn.setToolTip("re-hash LoRa / Tensors")
+        self.add_btn.clicked.connect(self.hash_clicked.emit)
+        layout.addWidget(self.hash_btn)
+
+        # Divider line between blocks
+        line1 = QFrame()
+        line1.setObjectName("ToolDivider")
+        line1.setFrameShape(QFrame.HLine)
+        layout.addWidget(line1)
+
+        # ==========================================
+        # BLOCK 2: LoRA TOOLs
+        # ==========================================
+        resize_title = QLabel("LoRa")
+        resize_title.setObjectName("ToolsSectionTitle")
+        layout.addWidget(resize_title)
+
+        self.resize_btn = QPushButton("Resize")
+        self.resize_btn.setObjectName("ToolButton")
+        self.resize_btn.setToolTip("Resize(compress) LoRa / Tensors")
+        self.resize_btn.clicked.connect(self.resize_clicked.emit)
+        layout.addWidget(self.resize_btn)
+
+        self.merge_btn = QPushButton("Merge")
+        self.merge_btn.setObjectName("ToolButton")
+        self.merge_btn.setToolTip("Merge Multiple LoRas")
+        self.merge_btn.clicked.connect(self.merge_clicked.emit)
+        layout.addWidget(self.merge_btn)
+
+        layout.addStretch()
+
+    def _apply_inline_styles(self):
+        self.setStyleSheet("""
+            #MetadataToolsFrame {
+                background-color: #0b0f19;
+                border: 1px solid #1e293b;
+                border-radius: 10px;
+                min-width: 100px;
+                max-width: 115px;
+            }
+            #ToolsSectionTitle {
+                color: #94a3b8;
+                font-size: 10px;
+                font-weight: bold;
+                text-transform: uppercase;
+                margin-top: 4px;
+                margin-bottom: 2px;
+            }
+            #ToolButton {
+                background-color: #131b2e;
+                color: #f8fafc;
+                border: 1px solid #1e293b;
+                border-radius: 8px;
+                padding: 7px 4px;
+                font-size: 11px;
+                font-weight: 600;
+                text-align: center;
+            }
+            #ToolButton:hover {
+                background-color: #1a233a;
+                border: 1px solid #334155;
+            }
+            #ToolDivider {
+                background-color: #1e293b;
+                border: none;
+                max-height: 1px;
+                margin: 4px 0px;
+            }
+        """)
+
+# class MetadataEditDialog(QDialog):
+#     """Fancy dark style modal dialog with tabs for editing keywords and raw metadata."""
+#
+#     def __init__(self, current_metadata: dict, parent=None):
+#         super().__init__(parent)
+#         self.setWindowTitle("Edit LoRa Metadata")
+#         self.resize(700, 550)
+#         self.updated_metadata = None
+#         self._current_meta = current_metadata or {}
+#
+#         self._setup_ui()
+#         self._apply_dark_style()
+#         self._load_data()
+#
+#     def _setup_ui(self):
+#         layout = QVBoxLayout(self)
+#         layout.setContentsMargins(16, 16, 16, 16)
+#         layout.setSpacing(14)
+#
+#         # Title header
+#         title = QLabel("✏️ Metadata Editor")
+#         title.setObjectName("DialogTitle")
+#         layout.addWidget(title)
+#
+#         # Tabs setup
+#         self.tabs = QTabWidget()
+#         self.tabs.setObjectName("EditorTabs")
+#
+#         # Tab 1: Keywords / Tags
+#         self.keywords_edit = QTextEdit()
+#         self.keywords_edit.setPlaceholderText("Enter keywords or tags (comma or newline separated)...")
+#         self.tabs.addTab(self.keywords_edit, "Keywords / Tags")
+#
+#         # Tab 2: Raw Metadata JSON
+#         self.raw_json_edit = QTextEdit()
+#         self.raw_json_edit.setPlaceholderText("Edit raw metadata JSON dictionary...")
+#         self.tabs.addTab(self.raw_json_edit, "Raw Metadata (JSON)")
+#
+#         layout.addWidget(self.tabs, stretch=1)
+#
+#         # Buttons layout
+#         btn_layout = QHBoxLayout()
+#         btn_layout.setSpacing(10)
+#
+#         self.apply_btn = QPushButton("Apply Changes")
+#         self.apply_btn.setObjectName("PrimaryButton")
+#         self.apply_btn.clicked.connect(self._on_apply)
+#
+#         self.cancel_btn = QPushButton("Cancel")
+#         self.cancel_btn.setObjectName("SecondaryButton")
+#         self.cancel_btn.clicked.connect(self.reject)
+#
+#         btn_layout.addStretch()
+#         btn_layout.addWidget(self.cancel_btn)
+#         btn_layout.addWidget(self.apply_btn)
+#
+#         layout.addLayout(btn_layout)
+#
+#     def _load_data(self):
+#         keywords_list = []
+#         meta_data = self._current_meta
+#
+#         # 1. Inspect ss_tag_frequency to find the dataset hierarchy
+#         tag_freq = meta_data.get("ss_tag_frequency", {})
+#         if isinstance(tag_freq, str):
+#             try:
+#                 tag_freq = json.loads(tag_freq)
+#             except Exception:
+#                 tag_freq = {}
+#
+#         # If it uses the nested dataset structure (e.g. {"dataset_name": {"tag1": count}})
+#         if isinstance(tag_freq, dict) and tag_freq:
+#             # Look inside the dataset containers
+#             for ds_key, ds_val in tag_freq.items():
+#                 if isinstance(ds_val, dict):
+#                     keywords_list.extend(ds_val.keys())
+#                 elif isinstance(ds_val, (int, float)):
+#                     # Flat structure fallback
+#                     keywords_list.append(ds_key)
+#         else:
+#             # Fallback to general keywords
+#             raw_keywords = meta_data.get("keywords", meta_data.get("tags", ""))
+#             if isinstance(raw_keywords, str):
+#                 try:
+#                     parsed = json.loads(raw_keywords)
+#                     if isinstance(parsed, list):
+#                         keywords_list = [str(k) for k in parsed]
+#                     elif isinstance(parsed, dict):
+#                         keywords_list = list(parsed.keys())
+#                 except Exception:
+#                     keywords_list = [k.strip() for k in raw_keywords.replace("\n", ",").split(",") if k.strip()]
+#             elif isinstance(raw_keywords, list):
+#                 keywords_list = [str(k) for k in raw_keywords]
+#
+#         # Deduplicate while preserving order
+#         seen = set()
+#         unique_keywords = [x for x in keywords_list if not (x in seen or seen.add(x))]
+#
+#         # Display tags one per line in the textbox
+#         self.keywords_edit.setPlainText("\n".join(unique_keywords))
+#
+#         # Format full metadata dict as pretty JSON for the raw metadata tab
+#         try:
+#             pretty_json = json.dumps(self._current_meta, indent=4, ensure_ascii=False)
+#             self.raw_json_edit.setPlainText(pretty_json)
+#         except Exception:
+#             self.raw_json_edit.setPlainText("{}")
+#
+#     def _on_apply(self):
+#         current_tab_index = self.tabs.currentIndex()
+#
+#         if current_tab_index == 1:
+#             # Raw JSON Tab active
+#             raw_text = self.raw_json_edit.toPlainText()
+#             try:
+#                 parsed_dict = json.loads(raw_text)
+#                 if not isinstance(parsed_dict, dict):
+#                     raise ValueError("JSON root must be an object/dictionary.")
+#                 self.updated_metadata = parsed_dict
+#                 self.accept()
+#             except Exception as e:
+#                 QMessageBox.critical(self, "Invalid JSON", f"Failed to parse raw metadata JSON:\n{str(e)}")
+#         else:
+#             # Keywords Tab active - Read line-by-line
+#             kw_text = self.keywords_edit.toPlainText()
+#             cleaned_keywords = [k.strip() for k in kw_text.splitlines() if k.strip()]
+#
+#             updated = dict(self._current_meta)
+#
+#             # --- 1. Update ss_tag_frequency ---
+#             if "ss_tag_frequency" in updated:
+#                 orig_val = updated["ss_tag_frequency"]
+#                 is_stringified = isinstance(orig_val, str)
+#                 try:
+#                     tag_freq_dict = json.loads(orig_val) if is_stringified else dict(orig_val)
+#                 except Exception:
+#                     tag_freq_dict = {}
+#
+#                 new_tag_freq = {}
+#                 if isinstance(tag_freq_dict, dict) and tag_freq_dict:
+#                     for ds_key, ds_val in tag_freq_dict.items():
+#                         if isinstance(ds_val, dict):
+#                             new_ds_dict = {}
+#                             for tag in cleaned_keywords:
+#                                 # Restore previous frequency count if it existed, otherwise default to 1
+#                                 if tag in ds_val:
+#                                     new_ds_dict[tag] = ds_val[tag]
+#                                 else:
+#                                     new_ds_dict[tag] = 1
+#                             new_tag_freq[ds_key] = new_ds_dict
+#                         else:
+#                             for tag in cleaned_keywords:
+#                                 new_tag_freq[tag] = tag_freq_dict.get(tag, 1)
+#                             break
+#                 else:
+#                     new_tag_freq = {"dataset": {tag: 1 for tag in cleaned_keywords}}
+#
+#                 updated["ss_tag_frequency"] = json.dumps(new_tag_freq, ensure_ascii=False) if is_stringified else new_tag_freq
+#
+#             # --- 2. Update ss_datasets ---
+#             if "ss_datasets" in updated:
+#                 ds_val_raw = updated["ss_datasets"]
+#                 is_ds_stringified = isinstance(ds_val_raw, str)
+#                 try:
+#                     ds_list = json.loads(ds_val_raw) if is_ds_stringified else list(ds_val_raw)
+#                 except Exception:
+#                     ds_list = []
+#
+#                 if isinstance(ds_list, list):
+#                     for dataset_item in ds_list:
+#                         if isinstance(dataset_item, dict):
+#                             # Check if this dataset container has a nested tag frequency map
+#                             for sub_k in ["tag_frequency", "ss_tag_frequency"]:
+#                                 if sub_k in dataset_item:
+#                                     sub_dict = dataset_item[sub_k]
+#                                     if isinstance(sub_dict, str):
+#                                         try:
+#                                             sub_dict = json.loads(sub_dict)
+#                                         except Exception:
+#                                             sub_dict = {}
+#
+#                                     if isinstance(sub_dict, dict):
+#                                         # Rebuild keeping frequencies intact
+#                                         new_sub_freq = {}
+#                                         for ds_k, ds_v in sub_dict.items():
+#                                             if isinstance(ds_v, dict):
+#                                                 new_inner = {}
+#                                                 for tag in cleaned_keywords:
+#                                                     if tag in ds_v:
+#                                                         new_inner[tag] = ds_v[tag]
+#                                                     else:
+#                                                         new_inner[tag] = 1
+#                                                 new_sub_freq[ds_k] = new_inner
+#                                             else:
+#                                                 for tag in cleaned_keywords:
+#                                                     new_sub_freq[tag] = ds_v.get(tag, 1) if isinstance(ds_v, dict) else 1
+#                                                 break
+#
+#                                         dataset_item[sub_k] = json.dumps(new_sub_freq, ensure_ascii=False) if isinstance(dataset_item[sub_k], str) else new_sub_freq
+#
+#                     updated["ss_datasets"] = json.dumps(ds_list, ensure_ascii=False) if is_ds_stringified else ds_list
+#
+#             self.updated_metadata = updated
+#             self.accept()
+#
+#     def _apply_dark_style(self):
+#         self.setStyleSheet("""
+#             QDialog {
+#                 background-color: #080c14;
+#                 color: #f8fafc;
+#                 font-family: sans-serif;
+#             }
+#             QLabel#DialogTitle {
+#                 font-size: 16px;
+#                 font-weight: bold;
+#                 color: #f8fafc;
+#             }
+#             QTabWidget::pane {
+#                 border: 1px solid #1e293b;
+#                 background-color: #0b0f19;
+#                 border-radius: 6px;
+#             }
+#             QTabBar::tab {
+#                 background-color: #131b2e;
+#                 color: #94a3b8;
+#                 padding: 8px 16px;
+#                 border-top-left-radius: 6px;
+#                 border-top-right-radius: 6px;
+#                 margin-right: 2px;
+#             }
+#             QTabBar::tab:selected {
+#                 background-color: #1e293b;
+#                 color: #f8fafc;
+#                 font-weight: bold;
+#             }
+#             QTextEdit {
+#                 background-color: #05070a;
+#                 color: #e2e8f0;
+#                 border: 1px solid #1e293b;
+#                 border-radius: 6px;
+#                 padding: 8px;
+#                 font-family: monospace;
+#                 font-size: 12px;
+#             }
+#
+#             /* --- Fancy Custom Scrollbars for Text Edits / Dialog --- */
+#             QScrollBar:vertical {
+#                 border: none;
+#                 background-color: #0b0f19;
+#                 width: 10px;
+#                 margin: 0px;
+#                 border-radius: 5px;
+#             }
+#             QScrollBar::handle:vertical {
+#                 background-color: #334155;
+#                 min-height: 25px;
+#                 border-radius: 5px;
+#                 margin: 2px;
+#             }
+#             QScrollBar::handle:vertical:hover {
+#                 background-color: #475569;
+#             }
+#             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+#                 height: 0px;
+#                 background: none;
+#             }
+#             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+#                 background: none;
+#             }
+#
+#             QScrollBar:horizontal {
+#                 border: none;
+#                 background-color: #0b0f19;
+#                 height: 10px;
+#                 margin: 0px;
+#                 border-radius: 5px;
+#             }
+#             QScrollBar::handle:horizontal {
+#                 background-color: #334155;
+#                 min-width: 25px;
+#                 border-radius: 5px;
+#                 margin: 2px;
+#             }
+#             QScrollBar::handle:horizontal:hover {
+#                 background-color: #475569;
+#             }
+#             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+#                 width: 0px;
+#                 background: none;
+#             }
+#             QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+#                 background: none;
+#             }
+#
+#             /* --- Buttons --- */
+#             QPushButton#PrimaryButton {
+#                 background-color: #3b82f6;
+#                 color: white;
+#                 border: none;
+#                 border-radius: 6px;
+#                 padding: 8px 16px;
+#                 font-weight: bold;
+#             }
+#             QPushButton#PrimaryButton:hover {
+#                 background-color: #2563eb;
+#             }
+#             QPushButton#SecondaryButton {
+#                 background-color: #1e293b;
+#                 color: #cbd5e1;
+#                 border: none;
+#                 border-radius: 6px;
+#                 padding: 8px 16px;
+#             }
+#             QPushButton#SecondaryButton:hover {
+#                 background-color: #334155;
+#             }
+#         """)
+
+
 class MetadataEditDialog(QDialog):
-    """Fancy dark style modal dialog with tabs for editing keywords and raw metadata."""
+    """Fancy dark style borderless modal dialog with tabs for editing keywords and raw metadata."""
 
     def __init__(self, current_metadata: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Edit LoRa Metadata")
         self.resize(700, 550)
+
+        # --- Borderless Window Setup ---
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+
         self.updated_metadata = None
         self._current_meta = current_metadata or {}
+
+        # Dragging variables for frameless window
+        self._drag_pos = QPoint()
 
         self._setup_ui()
         self._apply_dark_style()
         self._load_data()
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(14)
+        # Outer layout for the transparent window with margin for the shadow blur
+        dialog_layout = QVBoxLayout(self)
+        dialog_layout.setContentsMargins(16, 16, 16, 16)
 
-        # Title header
+        # --- Solid Outer Container Frame ---
+        self.container = QFrame(self)
+        self.container.setObjectName("BackgroundContainer")
+
+        # --- Working Drop Shadow Applied to the Container ---
+        # (Attached safely here now that layout constraints are settled)
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        shadow.setOffset(0, 4)
+        self.container.setGraphicsEffect(shadow)
+
+        container_layout = QVBoxLayout(self.container)
+        container_layout.setContentsMargins(16, 16, 16, 16)
+        container_layout.setSpacing(14)
+
+        dialog_layout.addWidget(self.container)
+
+        # --- Custom Title Bar (Draggable Header + Close Button) ---
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
         title = QLabel("✏️ Metadata Editor")
         title.setObjectName("DialogTitle")
-        layout.addWidget(title)
+        header_layout.addWidget(title)
 
-        # Tabs setup
+        header_layout.addStretch()
+
+        # Hardcoded centered Close 'X' button
+        self.close_btn = QPushButton("×")
+        self.close_btn.setCursor(Qt.PointingHandCursor)
+        self.close_btn.setFixedSize(32, 32)
+        self.close_btn.clicked.connect(self.reject)
+        self.close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #aaaaaa;
+                border: none;
+                font-size: 20px;
+                font-weight: 300;
+                border-radius: 6px;
+                text-align: center;
+                padding-bottom: 3px;
+            }
+            QPushButton:hover {
+                background-color: #c42b1c;
+                color: #ffffff;
+            }
+            QPushButton:pressed {
+                background-color: #a82316;
+            }
+        """)
+        header_layout.addWidget(self.close_btn)
+
+        container_layout.addLayout(header_layout)
+
+        # --- Tabs Setup ---
         self.tabs = QTabWidget()
         self.tabs.setObjectName("EditorTabs")
 
@@ -836,31 +1350,44 @@ class MetadataEditDialog(QDialog):
         self.raw_json_edit.setPlaceholderText("Edit raw metadata JSON dictionary...")
         self.tabs.addTab(self.raw_json_edit, "Raw Metadata (JSON)")
 
-        layout.addWidget(self.tabs, stretch=1)
+        container_layout.addWidget(self.tabs, stretch=1)
 
-        # Buttons layout
+        # --- Buttons Layout ---
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
-
-        self.apply_btn = QPushButton("Apply Changes")
-        self.apply_btn.setObjectName("PrimaryButton")
-        self.apply_btn.clicked.connect(self._on_apply)
+        btn_layout.addStretch()
 
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setObjectName("SecondaryButton")
+        self.cancel_btn.setCursor(Qt.PointingHandCursor)
+        self.cancel_btn.setFixedSize(90, 32)
         self.cancel_btn.clicked.connect(self.reject)
-
-        btn_layout.addStretch()
         btn_layout.addWidget(self.cancel_btn)
+
+        self.apply_btn = QPushButton("Apply")
+        self.apply_btn.setObjectName("PrimaryButton")
+        self.apply_btn.setCursor(Qt.PointingHandCursor)
+        self.apply_btn.setFixedSize(115, 32)
+        self.apply_btn.clicked.connect(self._on_apply)
         btn_layout.addWidget(self.apply_btn)
 
-        layout.addLayout(btn_layout)
+        container_layout.addLayout(btn_layout)
+
+    # --- Window Dragging Event Handlers ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
+            event.accept()
 
     def _load_data(self):
         keywords_list = []
         meta_data = self._current_meta
 
-        # 1. Inspect ss_tag_frequency to find the dataset hierarchy
         tag_freq = meta_data.get("ss_tag_frequency", {})
         if isinstance(tag_freq, str):
             try:
@@ -868,17 +1395,13 @@ class MetadataEditDialog(QDialog):
             except Exception:
                 tag_freq = {}
 
-        # If it uses the nested dataset structure (e.g. {"dataset_name": {"tag1": count}})
         if isinstance(tag_freq, dict) and tag_freq:
-            # Look inside the dataset containers
             for ds_key, ds_val in tag_freq.items():
                 if isinstance(ds_val, dict):
                     keywords_list.extend(ds_val.keys())
                 elif isinstance(ds_val, (int, float)):
-                    # Flat structure fallback
                     keywords_list.append(ds_key)
         else:
-            # Fallback to general keywords
             raw_keywords = meta_data.get("keywords", meta_data.get("tags", ""))
             if isinstance(raw_keywords, str):
                 try:
@@ -892,14 +1415,10 @@ class MetadataEditDialog(QDialog):
             elif isinstance(raw_keywords, list):
                 keywords_list = [str(k) for k in raw_keywords]
 
-        # Deduplicate while preserving order
         seen = set()
         unique_keywords = [x for x in keywords_list if not (x in seen or seen.add(x))]
-
-        # Display tags one per line in the textbox
         self.keywords_edit.setPlainText("\n".join(unique_keywords))
 
-        # Format full metadata dict as pretty JSON for the raw metadata tab
         try:
             pretty_json = json.dumps(self._current_meta, indent=4, ensure_ascii=False)
             self.raw_json_edit.setPlainText(pretty_json)
@@ -910,7 +1429,6 @@ class MetadataEditDialog(QDialog):
         current_tab_index = self.tabs.currentIndex()
 
         if current_tab_index == 1:
-            # Raw JSON Tab active
             raw_text = self.raw_json_edit.toPlainText()
             try:
                 parsed_dict = json.loads(raw_text)
@@ -921,13 +1439,10 @@ class MetadataEditDialog(QDialog):
             except Exception as e:
                 QMessageBox.critical(self, "Invalid JSON", f"Failed to parse raw metadata JSON:\n{str(e)}")
         else:
-            # Keywords Tab active - Read line-by-line
             kw_text = self.keywords_edit.toPlainText()
             cleaned_keywords = [k.strip() for k in kw_text.splitlines() if k.strip()]
-
             updated = dict(self._current_meta)
 
-            # --- 1. Update ss_tag_frequency ---
             if "ss_tag_frequency" in updated:
                 orig_val = updated["ss_tag_frequency"]
                 is_stringified = isinstance(orig_val, str)
@@ -942,11 +1457,7 @@ class MetadataEditDialog(QDialog):
                         if isinstance(ds_val, dict):
                             new_ds_dict = {}
                             for tag in cleaned_keywords:
-                                # Restore previous frequency count if it existed, otherwise default to 1
-                                if tag in ds_val:
-                                    new_ds_dict[tag] = ds_val[tag]
-                                else:
-                                    new_ds_dict[tag] = 1
+                                new_ds_dict[tag] = ds_val.get(tag, 1)
                             new_tag_freq[ds_key] = new_ds_dict
                         else:
                             for tag in cleaned_keywords:
@@ -955,9 +1466,9 @@ class MetadataEditDialog(QDialog):
                 else:
                     new_tag_freq = {"dataset": {tag: 1 for tag in cleaned_keywords}}
 
-                updated["ss_tag_frequency"] = json.dumps(new_tag_freq, ensure_ascii=False) if is_stringified else new_tag_freq
+                updated["ss_tag_frequency"] = json.dumps(new_tag_freq,
+                                                         ensure_ascii=False) if is_stringified else new_tag_freq
 
-            # --- 2. Update ss_datasets ---
             if "ss_datasets" in updated:
                 ds_val_raw = updated["ss_datasets"]
                 is_ds_stringified = isinstance(ds_val_raw, str)
@@ -969,7 +1480,6 @@ class MetadataEditDialog(QDialog):
                 if isinstance(ds_list, list):
                     for dataset_item in ds_list:
                         if isinstance(dataset_item, dict):
-                            # Check if this dataset container has a nested tag frequency map
                             for sub_k in ["tag_frequency", "ss_tag_frequency"]:
                                 if sub_k in dataset_item:
                                     sub_dict = dataset_item[sub_k]
@@ -978,25 +1488,22 @@ class MetadataEditDialog(QDialog):
                                             sub_dict = json.loads(sub_dict)
                                         except Exception:
                                             sub_dict = {}
-
                                     if isinstance(sub_dict, dict):
-                                        # Rebuild keeping frequencies intact
                                         new_sub_freq = {}
                                         for ds_k, ds_v in sub_dict.items():
                                             if isinstance(ds_v, dict):
                                                 new_inner = {}
                                                 for tag in cleaned_keywords:
-                                                    if tag in ds_v:
-                                                        new_inner[tag] = ds_v[tag]
-                                                    else:
-                                                        new_inner[tag] = 1
+                                                    new_inner[tag] = ds_v.get(tag, 1)
                                                 new_sub_freq[ds_k] = new_inner
                                             else:
                                                 for tag in cleaned_keywords:
-                                                    new_sub_freq[tag] = ds_v.get(tag, 1) if isinstance(ds_v, dict) else 1
+                                                    new_sub_freq[tag] = ds_v.get(tag, 1) if isinstance(ds_v,
+                                                                                                       dict) else 1
                                                 break
-
-                                        dataset_item[sub_k] = json.dumps(new_sub_freq, ensure_ascii=False) if isinstance(dataset_item[sub_k], str) else new_sub_freq
+                                        dataset_item[sub_k] = json.dumps(new_sub_freq,
+                                                                         ensure_ascii=False) if isinstance(
+                                            dataset_item[sub_k], str) else new_sub_freq
 
                     updated["ss_datasets"] = json.dumps(ds_list, ensure_ascii=False) if is_ds_stringified else ds_list
 
@@ -1005,13 +1512,14 @@ class MetadataEditDialog(QDialog):
 
     def _apply_dark_style(self):
         self.setStyleSheet("""
-            QDialog {
-                background-color: #080c14;
-                color: #f8fafc;
-                font-family: sans-serif;
+            /* Outer Container with solid background and border */
+            QFrame#BackgroundContainer {
+                background-color: #0d1321;
+                border: 1px solid #334155;
+                border-radius: 12px;
             }
             QLabel#DialogTitle {
-                font-size: 16px;
+                font-size: 15px;
                 font-weight: bold;
                 color: #f8fafc;
             }
@@ -1042,8 +1550,8 @@ class MetadataEditDialog(QDialog):
                 font-family: monospace;
                 font-size: 12px;
             }
-            
-            /* --- Fancy Custom Scrollbars for Text Edits / Dialog --- */
+
+            /* --- Custom Scrollbars --- */
             QScrollBar:vertical {
                 border: none;
                 background-color: #0b0f19;
@@ -1094,106 +1602,323 @@ class MetadataEditDialog(QDialog):
 
             /* --- Buttons --- */
             QPushButton#PrimaryButton {
-                background-color: #3b82f6;
+                background-color: #6366f1;
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-weight: bold;
+                border-radius: 8px;
+                font-weight: 600;
             }
             QPushButton#PrimaryButton:hover {
-                background-color: #2563eb;
+                background-color: #4f46e5;
             }
+            QPushButton#PrimaryButton:pressed {
+                        background-color: #4338ca;
+                    }
             QPushButton#SecondaryButton {
-                background-color: #1e293b;
+                background-color: #131b2e;
                 color: #cbd5e1;
-                border: none;
+                border: 1px solid #1e293b;
                 border-radius: 6px;
                 padding: 8px 16px;
+                font-weight: 600;
             }
             QPushButton#SecondaryButton:hover {
-                background-color: #334155;
+                background-color: #1a233a;
+                color: #f1f5f9;
+                border-color: #334155;
             }
         """)
 
-class LeftToolsToolbar(QFrame):
-    """Left toolbar frame housing metadata tools with inline/local QSS styling."""
-    export_clicked = Signal()
-    replace_clicked = Signal()
-    edit_clicked = Signal()
-    purge_clicked = Signal()
-
-    def __init__(self, parent=None):
+class MetadataAddDialog(QDialog):
+    def __init__(self, current_metadata: dict, parent=None):
         super().__init__(parent)
-        self.setObjectName("MetadataToolsFrame")
+
+        # Frameless window with translucent background for rounded corners and shadows
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+
+        self.resize(750, 600)
+        self.updated_metadata = None
+        self._current_meta = current_metadata or {}
+        self._drag_position = None
+
         self._setup_ui()
-        self._apply_inline_styles()
+        self._apply_dark_style()
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 14, 10, 14)
-        layout.setSpacing(10)
+        # Outer layout with margins for shadow
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(12, 12, 12, 12)
 
-        title_label = QLabel("Metadata")
-        title_label.setObjectName("ToolsSectionTitle")
-        layout.addWidget(title_label)
+        # Main Background Container
+        self.container = QFrame(self)
+        self.container.setObjectName("BackgroundContainer")
+        self.container.setAttribute(Qt.WA_StyledBackground, True)
+        outer_layout.addWidget(self.container)
 
-        self.export_btn = QPushButton("Export")
-        self.export_btn.setObjectName("ToolButton")
-        self.export_btn.setToolTip("Export Metadata JSON")
-        self.export_btn.clicked.connect(self.export_clicked.emit)
+        # Drop shadow
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(25)
+        shadow.setXOffset(0)
+        shadow.setYOffset(6)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        self.container.setGraphicsEffect(shadow)
 
-        self.replace_btn = QPushButton("Replace")
-        self.replace_btn.setObjectName("ToolButton")
-        self.replace_btn.setToolTip("Replace Metadata from JSON")
-        self.replace_btn.clicked.connect(self.replace_clicked.emit)
+        # Container internal layout
+        layout = QVBoxLayout(self.container)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(14)
 
-        self.edit_btn = QPushButton("Edit")
-        self.edit_btn.setObjectName("ToolButton")
-        self.edit_btn.setToolTip("Edit Metadata Interactively")
-        self.edit_btn.clicked.connect(self.edit_clicked.emit)
+        # Title Bar
+        title_layout = QHBoxLayout()
+        title = QLabel("Add Custom Metadata (Test Suite)")
+        title.setObjectName("DialogTitle")
+        title_layout.addWidget(title)
+        title_layout.addStretch()
 
-        self.purge_btn = QPushButton("Purge")
-        self.purge_btn.setObjectName("ToolButton")
-        self.purge_btn.setToolTip("Purge All Metadata Headers")
-        self.purge_btn.clicked.connect(self.purge_clicked.emit)
+        self.close_btn = QPushButton("×")
+        self.close_btn.setObjectName("CloseButton")
+        self.close_btn.setFixedSize(32, 32)
+        self.close_btn.setCursor(Qt.PointingHandCursor)
+        self.close_btn.clicked.connect(self.close)
+        self.close_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: transparent;
+                        color: #aaaaaa;
+                        border: none;
+                        font-size: 20px;
+                        font-weight: 300;
+                        border-radius: 6px;
+                        text-align: center;
+                        padding-bottom: 3px;  /* Nudges the '×' up by expanding bottom padding */
+                    }
+                    QPushButton:hover {
+                        background-color: #c42b1c;
+                        color: #ffffff;
+                    }
+                    QPushButton:pressed {
+                        background-color: #a82316;
+                    }
+                """)
 
-        layout.addWidget(self.export_btn)
-        layout.addWidget(self.replace_btn)
-        layout.addWidget(self.edit_btn)
-        layout.addWidget(self.purge_btn)
-        layout.addStretch()
+        title_layout.addWidget(self.close_btn)
+        layout.addLayout(title_layout)
 
-    def _apply_inline_styles(self):
-        self.setStyleSheet("""
-            #MetadataToolsFrame {
-                background-color: #0b0f19;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-                min-width: 95px;
-                max-width: 105px;
-            }
-            #ToolsSectionTitle {
-                color: #94a3b8;
-                font-size: 11px;
-                font-weight: bold;
-                padding: 4px 6px;
-                text-transform: uppercase;
-                margin-bottom: 4px;
-            }
-            #ToolButton {
-                background-color: #131b2e;
-                color: #f8fafc;
-                border: 1px solid #1e293b;
-                border-radius: 8px;
-                padding: 8px 6px;
-                font-size: 12px;
-                font-weight: 600;
-                text-align: center;
-            }
-            #ToolButton:hover {
-                background-color: #1a233a;
-                border: 1px solid #334155;
-            }
-        """)
+        # --- INNER FRAME CARD FOR CONTENT (Solid Opaque Container) ---
+        self.inner_card = QFrame(self.container)
+        self.inner_card.setObjectName("ContentCard")
+        self.inner_card.setFrameShape(QFrame.StyledPanel)
+
+        # Hardcode with a solid, high-contrast slate tone that doesn't trigger alpha blending bugs
+        self.inner_card.setStyleSheet("""
+                    QFrame#ContentCard {
+                        background-color: #0b0f19; 
+                        border: 1px solid #283548;
+                        border-radius: 8px;
+                    }
+                """)
+
+        card_layout = QVBoxLayout(self.inner_card)
+        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setSpacing(12)
+
+        # Test Element 1: Label inside inner card
+        card_layout.addWidget(QLabel("Test Label 1: Checking inheritance inside inner card"))
+
+        # Test Element 2: Line Edit
+        self.test_input = QLineEdit()
+        self.test_input.setPlaceholderText("Test input field (Type here...)")
+        card_layout.addWidget(self.test_input)
+
+        # Test Element 3: Tab Widget
+        self.tabs = QTabWidget()
+
+        # Tab 1: Keywords
+        tab1 = QWidget()
+        tab1_layout = QVBoxLayout(tab1)
+        tab1_layout.addWidget(QLabel("Keywords Tab Content Area"))
+        self.tabs.addTab(tab1, "Keywords")
+
+        # Tab 2: Raw Metadata
+        tab2 = QWidget()
+        tab2_layout = QVBoxLayout(tab2)
+        tab2_layout.addWidget(QLabel("Raw Metadata Tab Content Area"))
+        self.tabs.addTab(tab2, "Raw Metadata")
+
+        card_layout.addWidget(self.tabs)
+
+        # --- Test Slider 1: Standard Horizontal Slider ---
+        slider_label_1 = QLabel("Opacity / Weighting Factor: 50%")
+        self.test_slider = QSlider(Qt.Horizontal)
+        self.test_slider.setRange(0, 100)
+        self.test_slider.setValue(50)
+
+        # Connect signal to update label dynamically as you drag
+        self.test_slider.valueChanged.connect(
+            lambda val: slider_label_1.setText(f"Opacity / Weighting Factor: {val}%")
+        )
+
+        card_layout.addWidget(slider_label_1)
+        card_layout.addWidget(self.test_slider)
+
+        # --- Test Slider 2: Range / Threshold Slider ---
+        slider_label_2 = QLabel("Threshold Limit: 75")
+        self.test_slider_2 = QSlider(Qt.Horizontal)
+        self.test_slider_2.setRange(0, 255)
+        self.test_slider_2.setValue(75)
+
+        self.test_slider_2.valueChanged.connect(
+            lambda val: slider_label_2.setText(f"Threshold Limit: {val}")
+        )
+
+        # Define the exact slider style directly on the instances
+        slider_stylesheet = """
+                    QSlider::groove:horizontal {
+                        border: 1px solid #283548;
+                        height: 6px;
+                        background: #0b0f19;
+                        border-radius: 3px;
+                    }
+                    QSlider::sub-page:horizontal {
+                        background: #6366f1;
+                        border-radius: 3px;
+                    }
+                    QSlider::handle:horizontal {
+                        background: #f8fafc;
+                        border: 1px solid #cbd5e1;
+                        width: 16px;
+                        height: 16px;
+                        margin: -6px 0;
+                        border-radius: 8px;
+                    }
+                    QSlider::handle:horizontal:hover {
+                        background: #38bdf8;
+                        border-color: #38bdf8;
+                    }
+                    QSlider::handle:horizontal:pressed {
+                        background: #4f46e5;
+                    }
+                """
+
+        # Apply the style directly to both sliders
+        self.test_slider.setStyleSheet(slider_stylesheet)
+        self.test_slider_2.setStyleSheet(slider_stylesheet)
+
+        card_layout.addWidget(slider_label_2)
+        card_layout.addWidget(self.test_slider_2)
+
+        # Test Element 4: Action Button
+        action_btn = QPushButton("Save Metadata")
+        action_btn.setObjectName("ActionButton")
+        card_layout.addWidget(action_btn)
+
+        layout.addWidget(self.inner_card)
+
+        # --- Button Action Row ---
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 10, 0, 0)
+        button_layout.setSpacing(10)
+
+        # Push everything to the right side
+        button_layout.addStretch()
+
+        # Cancel Button
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setObjectName("SecondaryButton")  # Or style inline
+        self.cancel_btn.setCursor(Qt.PointingHandCursor)
+        self.cancel_btn.setFixedSize(90, 32)
+        self.cancel_btn.clicked.connect(self.reject)  # Standard QDialog reject
+        self.cancel_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #131b2e;
+                        color: #94a3b8;
+                        border: 1px solid #1e293b;
+                        border-radius: 8px;
+                        font-weight: 600;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a233a;
+                        color: #f1f5f9;
+                        border-color: #334155;
+                    }
+                    QPushButton:pressed {
+                        background-color: #0b0f19;
+                    }
+                """)
+        button_layout.addWidget(self.cancel_btn)
+
+        # Apply / Save Button
+        self.apply_btn = QPushButton("Apply")
+        self.apply_btn.setObjectName("PrimaryButton")  # Uses your existing QSS primary style
+        self.apply_btn.setCursor(Qt.PointingHandCursor)
+        self.apply_btn.setFixedSize(90, 32)
+        self.apply_btn.clicked.connect(self.accept)  # Standard QDialog accept
+        self.apply_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #6366f1;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-weight: 600;
+                    }
+                    QPushButton:hover {
+                        background-color: #4f46e5;
+                    }
+                    QPushButton:pressed {
+                        background-color: #4338ca;
+                    }
+                """)
+        button_layout.addWidget(self.apply_btn)
+
+        # Add the button row to the main container layout
+        layout.addLayout(button_layout)
+
+        # layout.addStretch()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._update_window_mask()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_window_mask()
+
+    def _update_window_mask(self):
+        path = QPainterPath()
+        path.addRoundedRect(self.container.rect(), 12, 12)
+        mask = QRegion(path.toFillPolygon().toPolygon())
+        self.container.setMask(mask)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_position = event.globalPosition().toPoint()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self._drag_position is not None:
+            current_pos = event.globalPosition().toPoint()
+            self.move(self.pos() + current_pos - self._drag_position)
+            self._drag_position = current_pos
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self._drag_position = None
+        event.accept()
+
+    def _apply_dark_style(self):
+        """Attempts to load external file, falls back or combines with embedded styles to guarantee rendering."""
+        try:
+            with open("./src/styles.qss", "r") as f:
+                external_qss = f.read()
+                if external_qss.strip():
+                    qss_content = external_qss
+                    print("Successfully loaded external styles.qss")
+        except FileNotFoundError:
+            print("Warning: ./src/styles.qss not found, using embedded test styles.")
+
+        # Apply explicitly to both container and application fallback if needed
+        self.container.setStyleSheet(qss_content)
+
+
+
 

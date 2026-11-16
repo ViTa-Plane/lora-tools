@@ -3,3 +3,5 @@ PySide6
 opencv-python
 torch
 safetensors>=0.4.1
+tqdm
+pytest
