@@ -15,7 +15,7 @@ from .keymap import Target, build_keymap, read_shapes
 from .merge import core_space, ties, tucker2, tucker_spectrum
 
 
-__all__ = ["BaseCheckpoint", "PairedLoraModel", "JsonCache"]
+__all__ = ["BaseCheckpoint", "PairedLoraModel", "JsonCache", "DecomposedLoRA", "LoRADict", "ConcatLoRAsDict", "CtMLoRAsDict",]
 
 RE_NAME_SPLIT = re.compile(r"[\-_ ]").split
 
