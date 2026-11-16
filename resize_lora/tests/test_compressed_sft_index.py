@@ -1,7 +1,7 @@
 import json
 import struct
 
-from compressed_sft_index import CompressedIndex, compress_index, parse_safetensors_header
+from ..compressed_sft_index import CompressedIndex, compress_index, parse_safetensors_header
 
 
 def test_compressed_index_round_trips_keys_and_typed_metadata(tmp_path):
