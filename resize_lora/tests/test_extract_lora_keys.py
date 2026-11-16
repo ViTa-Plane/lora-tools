@@ -1,4 +1,4 @@
-from extract_lora_keys import KeyFixture, detect_formats, select_diverse
+from ..extract_lora_keys import KeyFixture, detect_formats, select_diverse
 
 
 def _fixture(family, source, fingerprint, formats):
